@@ -3,37 +3,37 @@
 Discord::Discord(const char* applicationId)
 {
 	Discord_Initialize(applicationId, NULL, 0, NULL);
-
-	memset(&this->presence, 0, sizeof(this->presence));
+	memset(&this->_presence, 0, sizeof(this->_presence));
 }
 
 Discord::~Discord()
 {
+	this->Clear();
 	Discord_Shutdown();
 }
 
-void Discord::edit(const char* state, const char* details, const char* largeImageKey,
+void Discord::Edit(const char* state, const char* details, const char* largeImageKey,
 	const char* largeImageText, const char* smallImageKey, const char* smallImageText)
 {
-	this->presence.state = state;
-	this->presence.details = details;
-	this->presence.largeImageKey = largeImageKey;
-	this->presence.largeImageText = largeImageText;
-	this->presence.smallImageKey = smallImageKey;
-	this->presence.smallImageText = smallImageText;
+	this->_presence.state = state;
+	this->_presence.details = details;
+	this->_presence.largeImageKey = largeImageKey;
+	this->_presence.largeImageText = largeImageText;
+	this->_presence.smallImageKey = smallImageKey;
+	this->_presence.smallImageText = smallImageText;
 }
 
-void Discord::clear()
+void Discord::Clear()
 {
 	Discord_ClearPresence();
 }
 
-void Discord::update()
+void Discord::Update()
 {
-	Discord_UpdatePresence(&this->presence);
+	Discord_UpdatePresence(&this->_presence);
 }
 
-void Discord::updateTime(time_t time)
+void Discord::UpdateTime(time_t time)
 {
-	this->presence.startTimestamp = time;
+	this->_presence.startTimestamp = time;
 }
