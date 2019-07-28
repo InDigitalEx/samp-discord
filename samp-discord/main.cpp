@@ -1,12 +1,14 @@
 #include <Windows.h>
 #include <time.h>
 #include "Discord.h"
+#include "ZoneManager.h"
 #include "main.h"
 
 using namespace std;
 
 SAMPFUNCS* SF = new SAMPFUNCS();
 Discord* discord;
+ZoneManager* zone = new ZoneManager();
 
 bool sfInitialized = false;
 bool discordInitialized = false;
@@ -291,21 +293,27 @@ int32_t GetAmmoTotal()
 
 void GetStateText(string& state_text)
 {
-	// Get local vehicle
-	stSAMPVehicle *playerVehicle = SF->getSAMP()->getVehicles()->pSAMP_Vehicle[SF->getSAMP()->getPlayers()->pLocalPlayer->inCarData.sVehicleID];
+	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
+	{
+		if (SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentInterior != 0)
+		{
+			state_text = "In interior";
+		}
+		else
+		{
+			CVector* pos = PEDSELF->GetPosition();
+			state_text = zone->GetCity(pos->fX, pos->fY, pos->fZ) + " | " + zone->GetZone(pos->fX, pos->fY, pos->fZ);
+		}
 
-	// If player in vehicle
-	if (SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped->state == 50 // 50 is the position in car
-		&& playerVehicle != NULL && playerVehicle->pGTA_Vehicle != NULL)
-	{
-		string vehicleName = Vehicles[playerVehicle->pGTA_Vehicle->base.model_alt_id - 400]; // 400 is an offset
-		state_text = "In vehicle (" + vehicleName + ")";
-	}
-	// If Player alive
-	else if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
-	{
-		// TODO:
-		state_text = "Walking";
+		stSAMPVehicle* playerVehicle = SF->getSAMP()->getVehicles()->pSAMP_Vehicle[SF->getSAMP()->getPlayers()->pLocalPlayer->inCarData.sVehicleID];
+		
+		// If player in vehicle
+		if (SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped->state == 50 // 50 is the position in car
+			&& playerVehicle != NULL && playerVehicle->pGTA_Vehicle != NULL)
+		{
+			string vehicleName = Vehicles[playerVehicle->pGTA_Vehicle->base.model_alt_id - 400]; // 400 is an offset
+			state_text += " (Drive " + vehicleName + ")";
+		}
 	}
 	// Show connect statement
 	else
@@ -332,7 +340,7 @@ void GetStateText(string& state_text)
 		{
 			afkTimer = GetTickCount();
 		}
-		state_text.insert(0, "(AFK " + to_string((GetTickCount() - afkTimer) / 1000) + " s.) ");
+		state_text.insert(0, "[AFK " + to_string((GetTickCount() - afkTimer) / 1000) + " s.] ");
 	}
 	else
 	{
