@@ -281,6 +281,8 @@ const char* Vehicles[] =
 	{ "UtilityTrailer" }
 };
 
+
+
 int32_t GetAmmoInClip()
 {
 	return PEDSELF->GetWeapon(PEDSELF->GetCurrentWeaponSlot())->GetAmmoInClip();
@@ -293,45 +295,6 @@ int32_t GetAmmoTotal()
 
 void GetStateText(string& state_text)
 {
-	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
-	{
-		if (SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentInterior != 0)
-		{
-			state_text = "In interior";
-		}
-		else
-		{
-			CVector* pos = PEDSELF->GetPosition();
-			state_text = zone->GetCity(pos->fX, pos->fY, pos->fZ) + " | " + zone->GetZone(pos->fX, pos->fY, pos->fZ);
-		}
-
-		stSAMPVehicle* playerVehicle = SF->getSAMP()->getVehicles()->pSAMP_Vehicle[SF->getSAMP()->getPlayers()->pLocalPlayer->inCarData.sVehicleID];
-		
-		// If player in vehicle
-		if (SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped->state == 50 // 50 is the position in car
-			&& playerVehicle != NULL && playerVehicle->pGTA_Vehicle != NULL)
-		{
-			string vehicleName = Vehicles[playerVehicle->pGTA_Vehicle->base.model_alt_id - 400]; // 400 is an offset
-			state_text += " (Drive " + vehicleName + ")";
-		}
-	}
-	// Show connect statement
-	else
-	{
-		switch (SF->getSAMP()->getInfo()->iGameState)
-		{
-		case GAMESTATE_WAIT_CONNECT: state_text = "Wait connect"; return;
-		case GAMESTATE_DISCONNECTED: state_text = "Disconnected"; return;
-		case GAMESTATE_CONNECTED: state_text = "Connected"; return;
-		case GAMESTATE_AWAIT_JOIN: state_text = "Await join"; return;
-		case GAMESTATE_RESTARTING: state_text = "Restarting"; return;
-		default: {
-			state_text = "None";
-			return;
-		}
-		}
-	}
-
 	// If in background
 	if (!SF->getGame()->isGTAForeground() || SF->getGame()->isGTAMenuActive())
 	{
@@ -340,25 +303,72 @@ void GetStateText(string& state_text)
 		{
 			afkTimer = GetTickCount();
 		}
-		state_text.insert(0, "[AFK " + to_string((GetTickCount() - afkTimer) / 1000) + " s.] ");
+		state_text = "[AFK " + to_string((GetTickCount() - afkTimer) / 1000) + " s.] ";
 	}
 	else
 	{
+		state_text = "";
 		// Else game is active - reset timer
 		afkTimer = NULL;
+	}
+
+	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
+	{
+		if (SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentInterior != 0)
+		{
+			state_text += "In interior";
+		}
+		else
+		{
+			CVector* pos = PEDSELF->GetPosition();
+			state_text += "In " + zone->GetCity(pos->fX, pos->fY, pos->fZ) + " | " + zone->GetZone(pos->fX, pos->fY, pos->fZ);
+		}
+
+		stSAMPVehicle* playerVehicle = SF->getSAMP()->getVehicles()->pSAMP_Vehicle[SF->getSAMP()->getPlayers()->pLocalPlayer->inCarData.sVehicleID];
+		
+		// If player in vehicle (50 is drive car state)
+		if (SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped->state == 50
+			&& playerVehicle != NULL && playerVehicle->pGTA_Vehicle != NULL)
+		{
+			// 400 is an veh offset
+			string vehicleName = Vehicles[playerVehicle->pGTA_Vehicle->base.model_alt_id - 400];
+			state_text += " (Drive " + vehicleName + ")";
+		}
+	}
+	else
+	{
+		// Show connect statement
+		switch (SF->getSAMP()->getInfo()->iGameState)
+		{
+		case GAMESTATE_WAIT_CONNECT: state_text += "Wait connect"; return;
+		case GAMESTATE_DISCONNECTED: state_text += "Disconnected"; return;
+		case GAMESTATE_CONNECTED: state_text += "Connected"; return;
+		case GAMESTATE_AWAIT_JOIN: state_text += "Await join"; return;
+		case GAMESTATE_RESTARTING: state_text += "Restarting"; return;
+		default: {
+			state_text += "None";
+			return;
+		}
+		}
+	}
+}
+
+void GetDetailsText(string& details_text)
+{
+	details_text = SF->getSAMP()->getInfo()->szHostname;
+
+	if (details_text == "SA-MP")
+	{
+		details_text = "";
 	}
 }
 
 void GetLargeText(string& large_text)
 {
-	// Declare a local ped for quick reference
 	actor_info* ped = SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped;
-
-	// Get local player name
 	large_text = SF->getSAMP()->getPlayers()->szLocalPlayerName;
 
-	// Gamestate is connected because ped isn't yet spawned
-	if (SF->getSAMP()->getInfo()->iGameState == GAMESTATE_CONNECTED)
+	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
 	{
 		large_text +=
 			"[" + to_string(SF->getSAMP()->getPlayers()->sLocalPlayerID) + "]" +
@@ -375,13 +385,13 @@ void GetLargeText(string& large_text)
 
 void GetSmallText(string& small_text)
 {
-	actor_info* ped = SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped;
-	string pedWeapon = Weapons[SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentWeapon];
+	// Nullified because the text will be displayed
+	small_text = "";
 
-	small_text = ""; // Nullified because the text will be displayed
-	if (SF->getSAMP()->getInfo()->iGameState == GAMESTATE_CONNECTED)
+	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
 	{
-		small_text = "Active weapon: " + pedWeapon;
+		string weaponName = Weapons[SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentWeapon];
+		small_text = "Active weapon: " + weaponName;
 
 		int32_t ammoClip = GetAmmoInClip();
 		int32_t	ammoTotal = GetAmmoTotal();
@@ -403,6 +413,16 @@ void GetSmallText(string& small_text)
 	}
 }
 
+void GetSmallImageKey(string& small_image_key)
+{
+	if (!SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
+	{
+		small_image_key = "samp_loading";
+		return;
+	}
+	small_image_key = "weap_" + to_string(SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentWeapon);
+}
+
 // Threads
 static void DiscordThread()
 {
@@ -414,7 +434,6 @@ static void DiscordThread()
 			Sleep(100); // Waiting for initialization
 			continue;
 		}
-			
 
 		if (!discordInitialized)
 		{
@@ -424,17 +443,19 @@ static void DiscordThread()
 			Sleep(200); // For reliability
 		}
 
-		string stateText, largeText, smallText;
+		string stateText, detailsText, largeText, smallText, smallImageKey;
 		GetStateText(stateText);
+		GetDetailsText(detailsText);
 		GetLargeText(largeText);
 		GetSmallText(smallText);
+		GetSmallImageKey(smallImageKey);
 
 		discord->Edit(
 			stateText.c_str(),
-			SF->getSAMP()->getInfo()->szHostname,
-			"sa_big_img",
+			detailsText.c_str(),
+			"samp_large",
 			largeText.c_str(),
-			"unlocked",
+			smallImageKey.c_str(),
 			smallText.c_str());
 
 		discord->Update();

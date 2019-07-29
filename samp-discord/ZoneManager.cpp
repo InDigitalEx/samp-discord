@@ -431,7 +431,7 @@ string ZoneManager::GetCity(float x, float y, float z)
 
 string ZoneManager::GetZone(float x, float y, float z)
 {
-	string zone = "Unnamed";
+	string zone = "Custom place";
 
 	int count = _zoneName.size();
 
