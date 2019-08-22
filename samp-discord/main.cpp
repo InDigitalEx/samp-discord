@@ -12,7 +12,7 @@ ZoneManager* zone = new ZoneManager();
 
 bool sfInitialized = false;
 bool discordInitialized = false;
-DWORD afkTimer = NULL;
+DWORD AFKTimer = NULL;
 
 const char* Weapons[] =
 {
@@ -126,7 +126,7 @@ const char* Vehicles[] =
 	{ "Yankee" },
 	{ "Caddy" },
 	{ "Solair" },
-	{ "BerkleyRCVan" },
+	{ "Berkley RCVan" },
 	{ "Skimmer" },
 	{ "PCJ-600" },
 	{ "Faggio" },
@@ -169,15 +169,15 @@ const char* Vehicles[] =
 	{ "Benson" },
 	{ "Mesa" },
 	{ "RCGoblin" },
-	{ "HotringRacer A" },
-	{ "HotringRacer B" },
+	{ "Hotring Racer A" },
+	{ "Hotring Racer B" },
 	{ "BloodringBanger" },
 	{ "Rancher" },
 	{ "SuperGT" },
 	{ "Elegant" },
 	{ "Journey" },
 	{ "Bike" },
-	{ "MountainBike" },
+	{ "Mountain Bike" },
 	{ "Beagle" },
 	{ "Cropdust" },
 	{ "Stunt" },
@@ -191,8 +191,8 @@ const char* Vehicles[] =
 	{ "FCR-900" },
 	{ "NRG-500" },
 	{ "HPV1000" },
-	{ "CementTruck" },
-	{ "TowTruck" },
+	{ "Cement Truck" },
+	{ "Tow Truck" },
 	{ "Fortune" },
 	{ "Cadrona" },
 	{ "FBITruck" },
@@ -211,7 +211,7 @@ const char* Vehicles[] =
 	{ "Bullet" },
 	{ "Clover" },
 	{ "Sadler" },
-	{ "FiretruckLA" },
+	{ "Firetruck LA" },
 	{ "Hustler" },
 	{ "Intruder" },
 	{ "Primo" },
@@ -236,8 +236,8 @@ const char* Vehicles[] =
 	{ "Tahoma" },
 	{ "Savanna" },
 	{ "Bandito" },
-	{ "FreightFlat" },
-	{ "StreakCarriage" },
+	{ "Freight Flat" },
+	{ "Streak Carriage" },
 	{ "Kart" },
 	{ "Mower" },
 	{ "Duneride" },
@@ -263,9 +263,9 @@ const char* Vehicles[] =
 	{ "Dodo" },
 	{ "RCCam" },
 	{ "Launch" },
-	{ "PoliceCar(LSPD)" },
-	{ "PoliceCar(SFPD)" },
-	{ "PoliceCar(LVPD)" },
+	{ "Police Car(LSPD)" },
+	{ "Police Car(SFPD)" },
+	{ "Police Car(LVPD)" },
 	{ "PoliceRanger" },
 	{ "Picador" },
 	{ "S.W.A.T.Van" },
@@ -278,10 +278,8 @@ const char* Vehicles[] =
 	{ "StairTrailer" },
 	{ "Boxville" },
 	{ "FarmPlow" },
-	{ "UtilityTrailer" }
+	{ "Utility Trailer" }
 };
-
-
 
 int32_t GetAmmoInClip()
 {
@@ -299,21 +297,24 @@ void GetStateText(string& state_text)
 	if (!SF->getGame()->isGTAForeground() || SF->getGame()->isGTAMenuActive())
 	{
 		// If before game was active - set timer to current time
-		if (afkTimer == NULL)
+		if (AFKTimer == NULL)
 		{
-			afkTimer = GetTickCount();
+			AFKTimer = GetTickCount();
 		}
-		state_text = "[AFK " + to_string((GetTickCount() - afkTimer) / 1000) + " s.] ";
+		state_text = "[AFK " + to_string((GetTickCount() - AFKTimer) / 1000) + " s.] ";
 	}
 	else
 	{
 		state_text = "";
 		// Else game is active - reset timer
-		afkTimer = NULL;
+		AFKTimer = NULL;
 	}
 
+	// If player spawned
 	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
 	{
+		// Print player location
+
 		if (SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentInterior != 0)
 		{
 			state_text += "In interior";
@@ -324,15 +325,19 @@ void GetStateText(string& state_text)
 			state_text += "In " + zone->GetCity(pos->fX, pos->fY, pos->fZ) + " | " + zone->GetZone(pos->fX, pos->fY, pos->fZ);
 		}
 
-		stSAMPVehicle* playerVehicle = SF->getSAMP()->getVehicles()->pSAMP_Vehicle[SF->getSAMP()->getPlayers()->pLocalPlayer->inCarData.sVehicleID];
-		
-		// If player in vehicle (50 is drive car state)
-		if (SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped->state == 50
-			&& playerVehicle != NULL && playerVehicle->pGTA_Vehicle != NULL)
+		// Print player car
+
+		// If player in vehicle (50 is car state)
+		if (SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped->state == 50)
 		{
-			// 400 is an veh offset
-			string vehicleName = Vehicles[playerVehicle->pGTA_Vehicle->base.model_alt_id - 400];
-			state_text += " (Drive " + vehicleName + ")";
+			// Get local player vehicle
+			vehicle_info* currentVehicle =
+				SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped->vehicle;
+
+			string vehicleName = Vehicles[currentVehicle->base.model_alt_id - 400]; // 400 is an veh offset
+
+			// If first passenger is driver and == local player
+			state_text += (currentVehicle->passengers[0] == SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped ? " - Drive " : " - Sitting in ") + vehicleName;
 		}
 	}
 	else
@@ -355,8 +360,10 @@ void GetStateText(string& state_text)
 
 void GetDetailsText(string& details_text)
 {
+	// Paste server ip
 	details_text = SF->getSAMP()->getInfo()->szHostname;
 
+	// If player not connected - paste empty string
 	if (details_text == "SA-MP")
 	{
 		details_text = "";
@@ -368,6 +375,7 @@ void GetLargeText(string& large_text)
 	actor_info* ped = SF->getSAMP()->getPlayers()->pLocalPlayer->pSAMP_Actor->pGTA_Ped;
 	large_text = SF->getSAMP()->getPlayers()->szLocalPlayerName;
 
+	// If actor alive - show more than nickname (id, health, armour)
 	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
 	{
 		large_text +=
@@ -385,9 +393,6 @@ void GetLargeText(string& large_text)
 
 void GetSmallText(string& small_text)
 {
-	// Nullified because the text will be displayed
-	small_text = "";
-
 	if (SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
 	{
 		string weaponName = Weapons[SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentWeapon];
@@ -396,7 +401,7 @@ void GetSmallText(string& small_text)
 		int32_t ammoClip = GetAmmoInClip();
 		int32_t	ammoTotal = GetAmmoTotal();
 
-		if (ammoClip > 0 || ammoTotal > 0)
+		if (ammoClip > 1 || ammoTotal > 0)
 		{
 			// If weapon is single-shot
 			if (ammoClip == 1)
@@ -411,16 +416,25 @@ void GetSmallText(string& small_text)
 		}
 			
 	}
+	else
+	{
+		// Nullified because the text will be displayed
+		small_text = "";
+	}
 }
 
 void GetSmallImageKey(string& small_image_key)
 {
+	// If player not spawned show loading image
 	if (!SF->getSAMP()->getPlayers()->pLocalPlayer->iIsActorAlive)
 	{
 		small_image_key = "samp_loading";
-		return;
 	}
-	small_image_key = "weap_" + to_string(SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentWeapon);
+	else
+	{
+		small_image_key = "weap_" + to_string(SF->getSAMP()->getPlayers()->pLocalPlayer->byteCurrentWeapon);
+	}
+	
 }
 
 // Threads
